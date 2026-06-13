@@ -8,6 +8,7 @@ import path from 'path';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import admin from 'firebase-admin';
 
 import { logger, requestLogger } from './utils/logger';
 import { AppError, errorResponse, successResponse } from './types';
@@ -17,7 +18,7 @@ import cronRouter from './cron';
 
 // ─── Firebase Admin Initialisation ───────────────────────────────────────────
 
-const adminApp = (await import('firebase-admin/app')).initializeApp({
+admin.initializeApp({
   projectId: process.env['FIREBASE_PROJECT_ID'],
 });
 
@@ -53,7 +54,7 @@ app.use('/api/cron', cronRouter);
 
 // ─── 404 for unknown API routes ───────────────────────────────────────────────
 
-app.use('/api/*', (_req, res) => {
+app.use('/api/*path', (_req, res) => {
   res.status(404).json(errorResponse('API route not found'));
 });
 
@@ -64,7 +65,7 @@ if (IS_PRODUCTION) {
   app.use(express.static(distPath));
 
   // SPA fallback — must come after all /api/* handlers
-  app.get('*', (_req, res) => {
+  app.get('*path', (_req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
@@ -99,5 +100,4 @@ process.on('SIGTERM', () => {
   });
 });
 
-export { adminApp };
 export default app;
