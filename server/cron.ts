@@ -12,11 +12,10 @@ import { logger } from './utils/logger';
 import { successResponse, errorResponse } from './types';
 import type { UserDigestConfig, AgentResult, DigestPayload } from './types';
 
-// Agent imports — resolved when Accounts 5, 6, and 7 deliver their files.
-import { runScraperAgent } from './agents/scraperAgent';
-import { runFilterAgent } from './agents/filterAgent';
-import { runSummaryAgent } from './agents/summaryAgent';
-import { runEmailAgent } from './agents/emailAgent';
+import { runScraperAgent } from './agents/scraper-agent';
+import { runFilterAgent } from './agents/filter-agent';
+import { runSummaryAgent } from './agents/summary-agent';
+import { runEmailAgent } from './agents/email-agent';
 
 const router = Router();
 
@@ -73,7 +72,6 @@ export async function runPipelineForUser(config: UserDigestConfig): Promise<bool
 
     if (!emailResult.success) {
       logger.warn('Email agent failed', { uid, errors: emailResult.metadata.errors });
-      // Digest is saved even if email fails — user can retrieve via API
       return false;
     }
 
@@ -113,7 +111,6 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
   const startedAt = new Date().toISOString();
   const db = getFirestore();
 
-  // Fetch all users who want a digest
   let users: UserDigestConfig[] = [];
 
   try {
@@ -136,7 +133,6 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 
   logger.info('Cron run started', { userCount: users.length, startedAt });
 
-  // Run all pipelines concurrently — one failure must not block others
   const results = await Promise.allSettled(users.map((u) => runPipelineForUser(u)));
 
   const failedUids: string[] = [];
@@ -163,7 +159,6 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 
   const completedAt = new Date().toISOString();
 
-  // Write cron log to Firestore
   try {
     await db.collection('cron_logs').add({
       startedAt,
