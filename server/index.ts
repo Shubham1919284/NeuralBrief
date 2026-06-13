@@ -5,12 +5,9 @@
  */
 
 import path from 'path';
-import { fileURLToPath } from 'url';
-
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import * as admin from 'firebase-admin';
 
 import { logger, requestLogger } from './utils/logger';
 import { AppError, errorResponse, successResponse } from './types';
@@ -20,8 +17,7 @@ import cronRouter from './cron';
 
 // ─── Firebase Admin Initialisation ───────────────────────────────────────────
 
-admin.initializeApp({
-  credential: admin.credential.applicationDefault(),
+const adminApp = (await import('firebase-admin/app')).initializeApp({
   projectId: process.env['FIREBASE_PROJECT_ID'],
 });
 
@@ -31,9 +27,7 @@ const app = express();
 const PORT = process.env['PORT'] ?? 3001;
 const IS_PRODUCTION = process.env['NODE_ENV'] === 'production';
 
-// ESM __dirname shim
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.resolve();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
@@ -66,7 +60,7 @@ app.use('/api/*', (_req, res) => {
 // ─── Static Files (production only) ──────────────────────────────────────────
 
 if (IS_PRODUCTION) {
-  const distPath = path.join(__dirname, '../../dist');
+  const distPath = path.join(__dirname, '../dist');
   app.use(express.static(distPath));
 
   // SPA fallback — must come after all /api/* handlers
@@ -92,7 +86,7 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 // ─── Server Start ─────────────────────────────────────────────────────────────
 
 const server = app.listen(PORT, () => {
-  logger.info(`NeuralBrief server started`, { port: PORT, env: process.env['NODE_ENV'] ?? 'development' });
+  logger.info('NeuralBrief server started', { port: PORT, env: process.env['NODE_ENV'] ?? 'development' });
 });
 
 // ─── Graceful Shutdown (Cloud Run SIGTERM) ────────────────────────────────────
@@ -105,4 +99,5 @@ process.on('SIGTERM', () => {
   });
 });
 
+export { adminApp };
 export default app;
