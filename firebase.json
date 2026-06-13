@@ -5,7 +5,7 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "run": { "serviceId": "neuralbrief-backend", "region": "us-central1" }
+        "destination": "https://neuralbrief-production.up.railway.app/api/**"
       },
       {
         "source": "**",
